@@ -83,9 +83,7 @@ check_errs()
 
 if [ ! -z "$1" ]; then
 # The if selection statement proceeds to the script if $1 is not empty.
-   if [ ! -f "$1" ]; then
-      fatal "$1 does not exist"
-   fi
+   [ -f "$1" ]; check_errs $? "$1 does not exist"
    # The above if selection statement checks if the file exists before proceeding.
 
    FILENAME=$1  # %FILE% - Filename of original file
