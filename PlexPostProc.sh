@@ -53,15 +53,10 @@ DOWNMIX_AUDIO=2 #Number of channels to downmix to, set to 0 to turn off (leave s
 #******************************************************************************
 #  Do not edit below this line
 #******************************************************************************
-check_errs()
-{
-        # Function. Parameter 1 is the return code
-        # Para. 2 is text to display on failure
-        if [ "${1}" -ne "0" ]; then
-           echo "ERROR # ${1} : ${2}" | tee -a $LOGFILE
-           exit ${1}
-        fi
-}
+
+set -x
+set -e
+set -o pipefail
 
 TMPDIR="/tmp"
 LOGFILE="$TMPDIR/plex_DVR_post_processing_log"
@@ -130,7 +125,6 @@ TEMPFILENAME="$WORKDIR"/output.mkv
      minutes_taken="$(( seconds / 60 ))"
      seconds_taken="$(( $seconds - (minutes_taken * 60) ))"
      LOG_STRING_4="$(ls -lh $TEMPFILENAME | awk ' { print $5 }')] - [$minutes_taken min $seconds_taken sec]\n"
-     check_errs $? "Failed to convert using FFMPEG."
 
    # ********************************************************"
    # Encode Done. Performing Cleanup
@@ -140,7 +134,5 @@ TEMPFILENAME="$WORKDIR"/output.mkv
    printf "$LOG_STRING_4$LOG_STRING_5" | tee -a $LOGFILE
 
    rm -f "$FILENAME" # Delete original in .grab folder
-   check_errs $? "Failed to remove original file: $FILENAME"
 
    mv -f "$TEMPFILENAME" "${FILENAME%.ts}.mkv" # Move completed tempfile to .grab folder/filename
-   check_errs $? "Failed to move converted file: $TEMPFILENAME"
