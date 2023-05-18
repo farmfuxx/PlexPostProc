@@ -64,14 +64,26 @@ check_errs()
         fi
 }
 
-if [ ! -z "$1" ]; then
-# The if selection statement proceeds to the script if $1 is not empty.
-   if [ ! -f "$1" ]; then
-      fatal "$1 does not exist"
-   fi
-   # The above if selection statement checks if the file exists before proceeding.
-
    FILENAME=$1  # %FILE% - Filename of original file
+
+function usage
+{
+  echo
+  echo "Usage: $0 <INPUT_FILE>"
+  echo
+}
+
+if [ -z "$FILENAME" ]; then
+  echo "Error: File argument missing"
+  usage
+  exit 2
+fi
+
+if [ ! -r "$FILENAME" ]; then
+  echo "Error: input file ($FILENAME) is unreadable"
+  usage
+  exit 1
+fi
 
    FILESIZE="$(ls -lh "$FILENAME" | awk '{ print $5 }')"
 
@@ -125,11 +137,3 @@ if [ ! -z "$1" ]; then
 
    mv -f "$TEMPFILENAME" "${FILENAME%.ts}.mkv" # Move completed tempfile to .grab folder/filename
    check_errs $? "Failed to move converted file: $TEMPFILENAME"
-
-
-else
-   echo "********************************************************" | tee -a $LOGFILE
-   echo "PlexPostProc by nebhead" | tee -a $LOGFILE
-   echo "Usage: $0 FileName" | tee -a $LOGFILE
-   echo "********************************************************" | tee -a $LOGFILE
-fi
