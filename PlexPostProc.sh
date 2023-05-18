@@ -91,6 +91,7 @@ fi
 function cleanup
 {
   set +e # turn off 'exit on error' during cleanup.
+  if [ -f "$WORKDIR"/audio_stream.json ]; then rm "$WORKDIR"/audio_stream.json; fi
   if [ -f "$WORKDIR"/video_stream.json ]; then rm "$WORKDIR"/video_stream.json; fi
   if [ -f "$TEMPFILENAMESRT" ]; then rm "$TEMPFILENAMESRT"; fi
   if [ -f "$TEMPFILENAME" ]; then rm "$TEMPFILENAME"; fi
@@ -116,10 +117,13 @@ log_line "querying input $FILENAME (in_size=$FILESIZE)"
 
 ffprobe "$FILENAME" -loglevel quiet -print_format json \
     -select_streams v:0 -show_streams > "$WORKDIR"/video_stream.json
+ffprobe "$FILENAME" -loglevel quiet -print_format json \
+    -select_streams a:0 -show_streams > "$WORKDIR"/audio_stream.json
 
 RES="$(cat "$WORKDIR"/video_stream.json | jq -r '.["streams"][0]["height"]')"
 VIDEO_FRAMERATE="$(cat "$WORKDIR"/video_stream.json | jq -r '.["streams"][0]["r_frame_rate"]')"
 CLOSED_CAPTIONS="$(cat "$WORKDIR"/video_stream.json | jq -r '.["streams"][0]["closed_captions"]')"
+AUDIO_CHANNELS="$(cat "$WORKDIR"/audio_stream.json | jq -r ' .["streams"][0]["channels"]')"
 
 log_line "input details: RES=$RES, FRAMERATE=$VIDEO_FRAMERATE, CC=$CLOSED_CAPTIONS"
 
@@ -129,7 +133,7 @@ if [[ "$CLOSED_CAPTIONS" -eq "1" ]]; then
   CC_OPTS="-i $TEMPFILENAMESRT"
 fi
 
-if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
+if [[ $DOWNMIX_AUDIO -ne  0  && $AUDIO_CHANNELS -gt $DOWNMIX_AUDIO ]]; then
   DOWNMIX_OPTS="-ac $DOWNMIX_AUDIO"
 fi
 
