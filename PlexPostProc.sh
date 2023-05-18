@@ -36,7 +36,6 @@
 #
 #******************************************************************************
 
-TMPFOLDER="/tmp"
 RES="720"         # Resolution to convert to:
                   # "480" = 480 Vertical Resolution
                   # "720" = 720 Vertical Resolution
@@ -64,6 +63,8 @@ check_errs()
         fi
 }
 
+TMPDIR="/tmp"
+LOGFILE="$TMPDIR/plex_DVR_post_processing_log"
    FILENAME=$1  # %FILE% - Filename of original file
 
 function usage
@@ -87,11 +88,17 @@ fi
 
    FILESIZE="$(ls -lh "$FILENAME" | awk '{ print $5 }')"
 
-   RANDFILENAME="$(mktemp)"  # Base random name, will be used for cleanup
-   rm -f "$RANDFILENAME" #Cleanup mktemp artifact
-   TEMPFILENAME="$RANDFILENAME.mkv"  # Temporary File Name for transcoding
+function cleanup
+{
+  set +e # turn off 'exit on error' during cleanup.
+  if [ -f "$TEMPFILENAME" ]; then rm "$TEMPFILENAME"; fi
+  if [ -d "$WORKDIR" ]; then rmdir $WORKDIR; fi
+}
+trap cleanup EXIT
 
-   LOGFILE="$TMPFOLDER/plex_DVR_post_processing_log"
+WORKDIR="$(mktemp -d "$TMPDIR"/ppp.work.XXXXXXX)"
+TEMPFILENAME="$WORKDIR"/output.mkv
+
    touch $LOGFILE # Create the log file
 
    # Uncomment if you want to adjust the bandwidth for this thread
