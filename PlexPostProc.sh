@@ -110,11 +110,14 @@ TEMPFILENAME="$WORKDIR"/output.mkv
 
 log_line "started transcoding $FILENAME (in_size=$FILESIZE)"
 
-     if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
-         ffmpeg -i "$FILENAME" -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif -codec:a "$AUDIO_CODEC" -ac "$DOWNMIX_AUDIO" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
-     else
-         ffmpeg -i "$FILENAME" -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif -codec:a "$AUDIO_CODEC" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
-     fi
+if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
+  DOWNMIX_OPTS="-ac $DOWNMIX_AUDIO"
+fi
+
+ffmpeg -i "$FILENAME" \
+    -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif \
+    -codec:a "$AUDIO_CODEC" $DOWNMIX_OPTS -b:a "$AUDIO_BITRATE"k -async 1 \
+    "$TEMPFILENAME"
 
 log_line "finished writing $TEMPFILENAME (out_size=$(ls -lh $TEMPFILENAME | awk '{ print $5 }'))"
 
