@@ -59,8 +59,6 @@ DOWNMIX_AUDIO=2 #Number of channels to downmix to, set to 0 to turn off (leave s
 #******************************************************************************
 #  Do not edit below this line
 #******************************************************************************
-sleep 3
-
 check_errs()
 {
         # Function. Parameter 1 is the return code
@@ -177,5 +175,3 @@ else
    echo "Usage: $0 FileName" | tee -a $LOGFILE
    echo "********************************************************" | tee -a $LOGFILE
 fi
-
-sleep 3 #Time for things to settle down, move commands to finish etc...
