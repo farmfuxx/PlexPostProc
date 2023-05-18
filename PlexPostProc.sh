@@ -12,6 +12,7 @@
 #
 #  Pre-requisites:
 #     ffmpeg (required) with libx265
+#     jq
 #
 #  Usage:
 #     'PlexPostProc.sh %1'
@@ -36,17 +37,10 @@
 #
 #******************************************************************************
 
-RES="720"         # Resolution to convert to:
-                  # "480" = 480 Vertical Resolution
-                  # "720" = 720 Vertical Resolution
-                  # "1080" = 1080 Vertical Resolution
-
-
 AUDIO_CODEC="ac3" # From best to worst: libfdk_aac > libmp3lame/eac3/ac3 > aac. But libfdk_acc requires manual compilaton of ffmpeg. For OTA DVR standard acc should be enough.
 AUDIO_BITRATE=96
 VIDEO_CODEC="libx265" # Will need Ubuntu 18.04 LTS or later. Otherwise change to "libx264". On average libx265 should produce files half in size of libx264  without losing quality. It is more compute intensive, so transcoding will take longer.
 VIDEO_QUALITY=26 #Lower values produce better quality. It is not recommended going lower than 18. 26 produces around 1Mbps video, 23 around 1.5Mbps.
-VIDEO_FRAMERATE="24000/1001" #Standard US movie framerate, most US TV shows run at this framerate as well
 
 DOWNMIX_AUDIO=2 #Number of channels to downmix to, set to 0 to turn off (leave source number of channels, but make sure to increase audio bitrate to accomodate all the needed bitrate. For 5.1 Id set no lower than 320). 1 == mono, 2 == stereo, 6 == 5.1
 
@@ -69,6 +63,11 @@ function usage
   echo
 }
 
+if [ ! -x "$(which jq)" ]; then
+  echo "Error: no jq executable available in path"
+  exit 1
+fi
+
 if [ -z "$FILENAME" ]; then
   echo "Error: File argument missing"
   usage
@@ -86,6 +85,7 @@ fi
 function cleanup
 {
   set +e # turn off 'exit on error' during cleanup.
+  if [ -f "$WORKDIR"/video_stream.json ]; then rm "$WORKDIR"/video_stream.json; fi
   if [ -f "$TEMPFILENAME" ]; then rm "$TEMPFILENAME"; fi
   if [ -d "$WORKDIR" ]; then rmdir $WORKDIR; fi
 }
@@ -104,11 +104,15 @@ TEMPFILENAME="$WORKDIR"/output.mkv
    # Adjust niceness of CPU priority for the current process
    #renice 19 $MYPID
 
-   # ********************************************************
-   # Starting Transcoding
-   # ********************************************************
+log_line "querying input $FILENAME (in_size=$FILESIZE)"
 
-log_line "started transcoding $FILENAME (in_size=$FILESIZE)"
+ffprobe "$FILENAME" -loglevel quiet -print_format json \
+    -select_streams v:0 -show_streams > "$WORKDIR"/video_stream.json
+
+RES="$(cat "$WORKDIR"/video_stream.json | jq -r '.["streams"][0]["height"]')"
+VIDEO_FRAMERATE="$(cat "$WORKDIR"/video_stream.json | jq -r '.["streams"][0]["r_frame_rate"]')"
+
+log_line "input details: RES=$RES, FRAMERATE=$VIDEO_FRAMERATE"
 
 if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
   DOWNMIX_OPTS="-ac $DOWNMIX_AUDIO"
