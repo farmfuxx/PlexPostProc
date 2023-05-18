@@ -114,7 +114,7 @@ if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
   DOWNMIX_OPTS="-ac $DOWNMIX_AUDIO"
 fi
 
-ffmpeg -i "$FILENAME" \
+ffmpeg -loglevel warning -nostats -i "$FILENAME" \
     -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif \
     -codec:a "$AUDIO_CODEC" $DOWNMIX_OPTS -b:a "$AUDIO_BITRATE"k -async 1 \
     "$TEMPFILENAME"
