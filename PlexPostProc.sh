@@ -91,10 +91,13 @@ function cleanup
 }
 trap cleanup EXIT
 
+function log_line
+{
+  echo "$(date +"%Y%m%d-%H%M%S"): $$ $1" | tee -a "$LOGFILE"
+}
+
 WORKDIR="$(mktemp -d "$TMPDIR"/ppp.work.XXXXXXX)"
 TEMPFILENAME="$WORKDIR"/output.mkv
-
-   touch $LOGFILE # Create the log file
 
    # Uncomment if you want to adjust the bandwidth for this thread
    #MYPID=$$    # Process ID for current script
@@ -105,33 +108,19 @@ TEMPFILENAME="$WORKDIR"/output.mkv
    # Starting Transcoding
    # ********************************************************
 
-   LOG_STRING_1="\n$(date +"%Y%m%d-%H%M%S"): Transcoding $FILENAME to $TEMPFILENAME\n"
-   if [[ PPP_CHECK -eq 0 ]]; then
-     printf "$LOG_STRING_1" | tee -a $LOGFILE
-   fi
-     LOG_STRING_2="Using FFMPEG"
-     LOG_STRING_3=" [$FILESIZE -> "
-     if [[ PPP_CHECK -eq 0 ]]; then
-         printf "$LOG_STRING_2$LOG_STRING_3" | tee -a $LOGFILE
-     fi
-     start_time=$(date +%s)
+log_line "started transcoding $FILENAME (in_size=$FILESIZE)"
+
      if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
          ffmpeg -i "$FILENAME" -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif -codec:a "$AUDIO_CODEC" -ac "$DOWNMIX_AUDIO" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
      else
          ffmpeg -i "$FILENAME" -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif -codec:a "$AUDIO_CODEC" -b:a "$AUDIO_BITRATE"k -async 1 "$TEMPFILENAME"
      fi
-     end_time=$(date +%s)
-     seconds="$(( end_time - start_time ))"
-     minutes_taken="$(( seconds / 60 ))"
-     seconds_taken="$(( $seconds - (minutes_taken * 60) ))"
-     LOG_STRING_4="$(ls -lh $TEMPFILENAME | awk ' { print $5 }')] - [$minutes_taken min $seconds_taken sec]\n"
+
+log_line "finished writing $TEMPFILENAME (out_size=$(ls -lh $TEMPFILENAME | awk '{ print $5 }'))"
 
    # ********************************************************"
    # Encode Done. Performing Cleanup
    # ********************************************************"
-
-   LOG_STRING_5="$(date +"%Y%m%d-%H%M%S"): Finished transcode,"
-   printf "$LOG_STRING_4$LOG_STRING_5" | tee -a $LOGFILE
 
    rm -f "$FILENAME" # Delete original in .grab folder
 
