@@ -11,6 +11,7 @@
 #  Version: 2022.2.7 (forked by apassiou)
 #
 #  Pre-requisites:
+#     ccextractor
 #     ffmpeg (required) with libx265
 #     jq
 #
@@ -68,6 +69,11 @@ if [ ! -x "$(which jq)" ]; then
   exit 1
 fi
 
+if [ ! -x "$(which ccextractor)" ]; then
+  echo "Error: no ccextractor executable available in path"
+  exit 1
+fi
+
 if [ -z "$FILENAME" ]; then
   echo "Error: File argument missing"
   usage
@@ -86,6 +92,7 @@ function cleanup
 {
   set +e # turn off 'exit on error' during cleanup.
   if [ -f "$WORKDIR"/video_stream.json ]; then rm "$WORKDIR"/video_stream.json; fi
+  if [ -f "$TEMPFILENAMESRT" ]; then rm "$TEMPFILENAMESRT"; fi
   if [ -f "$TEMPFILENAME" ]; then rm "$TEMPFILENAME"; fi
   if [ -d "$WORKDIR" ]; then rmdir $WORKDIR; fi
 }
@@ -98,6 +105,7 @@ function log_line
 
 WORKDIR="$(mktemp -d "$TMPDIR"/ppp.work.XXXXXXX)"
 TEMPFILENAME="$WORKDIR"/output.mkv
+TEMPFILENAMESRT="$WORKDIR"/sub.srt
 
    # Uncomment if you want to adjust the bandwidth for this thread
    #MYPID=$$    # Process ID for current script
@@ -111,14 +119,21 @@ ffprobe "$FILENAME" -loglevel quiet -print_format json \
 
 RES="$(cat "$WORKDIR"/video_stream.json | jq -r '.["streams"][0]["height"]')"
 VIDEO_FRAMERATE="$(cat "$WORKDIR"/video_stream.json | jq -r '.["streams"][0]["r_frame_rate"]')"
+CLOSED_CAPTIONS="$(cat "$WORKDIR"/video_stream.json | jq -r '.["streams"][0]["closed_captions"]')"
 
-log_line "input details: RES=$RES, FRAMERATE=$VIDEO_FRAMERATE"
+log_line "input details: RES=$RES, FRAMERATE=$VIDEO_FRAMERATE, CC=$CLOSED_CAPTIONS"
+
+# Extract Closed Captions:
+if [[ "$CLOSED_CAPTIONS" -eq "1" ]]; then
+  ccextractor "$FILENAME" -o "$TEMPFILENAMESRT" --no_progress_bar
+  CC_OPTS="-i $TEMPFILENAMESRT"
+fi
 
 if [[ $DOWNMIX_AUDIO -ne  0 ]]; then
   DOWNMIX_OPTS="-ac $DOWNMIX_AUDIO"
 fi
 
-ffmpeg -loglevel warning -nostats -i "$FILENAME" \
+ffmpeg -loglevel warning -nostats -i "$FILENAME" $CC_OPTS \
     -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif \
     -codec:a "$AUDIO_CODEC" $DOWNMIX_OPTS -b:a "$AUDIO_BITRATE"k -async 1 \
     "$TEMPFILENAME"
