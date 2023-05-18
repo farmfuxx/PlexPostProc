@@ -59,16 +59,6 @@ DOWNMIX_AUDIO=2 #Number of channels to downmix to, set to 0 to turn off (leave s
 #******************************************************************************
 #  Do not edit below this line
 #******************************************************************************
-PPP_CHECK=0
-
-#In order to avoid log file jumble, if another transcode process is active will wait to write to log until done
-if ls "$TMPFOLDER/"*".ppplock" 1> /dev/null 2>&1; then
-    PPP_CHECK=1
-fi
-
-LOG_STRING_3="" #Placeholder as some portions dont use all log strings.
-LOG_STRING_4=""
-
 sleep 3
 
 check_errs()
@@ -95,11 +85,6 @@ if [ ! -z "$1" ]; then
    RANDFILENAME="$(mktemp)"  # Base random name, will be used for cleanup
    rm -f "$RANDFILENAME" #Cleanup mktemp artifact
    TEMPFILENAME="$RANDFILENAME.mkv"  # Temporary File Name for transcoding
-
-   LOCKFILE="$(mktemp)"  # [WORKAROUND] Temporary File for blocking simultaneous scripts from ending early
-   rm -f "$LOCKFILE" #Clean up mktemp artifact
-   touch "$LOCKFILE.ppplock" # Create the lock file
-   check_errs $? "Failed to create temporary lockfile: $LOCKFILE.ppplock"
 
    LOGFILE="$TMPFOLDER/plex_DVR_post_processing_log"
    touch $LOGFILE # Create the log file
@@ -177,9 +162,7 @@ if [ ! -z "$1" ]; then
    # ********************************************************"
 
    LOG_STRING_5="$(date +"%Y%m%d-%H%M%S"): Finished transcode,"
-   if [[ PPP_CHECK -eq 0 ]]; then
-       printf "$LOG_STRING_4$LOG_STRING_5" | tee -a $LOGFILE
-   fi
+   printf "$LOG_STRING_4$LOG_STRING_5" | tee -a $LOGFILE
 
    rm -f "$FILENAME" # Delete original in .grab folder
    check_errs $? "Failed to remove original file: $FILENAME"
@@ -187,36 +170,6 @@ if [ ! -z "$1" ]; then
    mv -f "$TEMPFILENAME" "${FILENAME%.ts}.mkv" # Move completed tempfile to .grab folder/filename
    check_errs $? "Failed to move converted file: $TEMPFILENAME"
 
-   rm -f "$LOCKFILE.ppplock"* # Delete the lockfile 
-   check_errs $? "Failed to remove lockfile."
-
-   # [WORKAROUND] Wait for any other post-processing scripts to complete before exiting. So that plex doesnt start deleting grab files.
-   timeout_counter=120
-   while [ true ] ; do
-     if ls "$TMPFOLDER/"*".ppplock" 1> /dev/null 2>&1; then
-       if  [[ $timeout_counter -eq 0 ]]; then
-           echo "Timeout reached, ending wait" | tee -a $LOGFILE
-           break
-       fi
-       if [[ timeout_counter -eq 120 ]]; then #Prevents log spam, after initial message simple '.' will be printed to log.
-           printf "\n$(date +"%Y%m%d-%H%M%S"): Another transcode running. Waiting." | tee -a $LOGFILE
-       else
-           printf "." | tee -a $LOGFILE
-       fi
-       timeout_counter=$((timeout_counter-1))
-       sleep 60
-     else
-       if  [[ $timeout_counter -lt 119 ]]; then
-           echo "$(date +"%Y%m%d-%H%M%S"): It looks like all scripts are done running, exiting." | tee -a $LOGFILE
-       fi
-       break
-     fi
-   done
-
-   if [[ PPP_CHECK -eq 1 ]]; then
-       printf "$LOG_STRING_1$LOG_STRING_2$LOG_STRING_3$LOG_STRING_4$LOG_STRING_5" | tee -a $LOGFILE #Doing all together as to not stumble over multiple concurrent processes in log
-   fi
-   printf " exiting.\n" | tee -a $LOGFILE
 
 else
    echo "********************************************************" | tee -a $LOGFILE
