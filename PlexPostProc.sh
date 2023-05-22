@@ -26,6 +26,8 @@
 #
 #******************************************************************************
 
+DELETE_RECORDINGS_WITH_ERRORS="0" # throw away recordings with any errors
+
 AUDIO_CODEC="ac3" # From best to worst: libfdk_aac > libmp3lame/eac3/ac3 > aac. But libfdk_acc requires manual compilaton of ffmpeg. For OTA DVR standard acc should be enough.
 AUDIO_BITRATE=96
 VIDEO_CODEC="libx265" # Will need Ubuntu 18.04 LTS or later. Otherwise change to "libx264". On average libx265 should produce files half in size of libx264  without losing quality. It is more compute intensive, so transcoding will take longer.
@@ -79,6 +81,7 @@ FILESIZE="$(ls -lh "$FILENAME" | awk '{ print $5 }')"
 function cleanup
 {
   set +e # turn off 'exit on error' during cleanup.
+  if [ -f "$WORKDIR"/scan_errors.out ]; then rm "$WORKDIR"/scan_errors.out; fi
   if [ -f "$WORKDIR"/audio_stream.json ]; then rm "$WORKDIR"/audio_stream.json; fi
   if [ -f "$WORKDIR"/video_stream.json ]; then rm "$WORKDIR"/video_stream.json; fi
   if [ -f "$TEMPFILENAMESRT" ]; then rm "$TEMPFILENAMESRT"; fi
@@ -114,6 +117,20 @@ CLOSED_CAPTIONS="$(cat "$WORKDIR"/video_stream.json | jq -r '.["streams"][0]["cl
 AUDIO_CHANNELS="$(cat "$WORKDIR"/audio_stream.json | jq -r ' .["streams"][0]["channels"]')"
 
 log_line "input details: RES=$RES, FRAMERATE=$VIDEO_FRAMERATE, CC=$CLOSED_CAPTIONS"
+
+# Scan infile for errors
+FFREPORT=file="$WORKDIR"/scan_errors.out ffmpeg -v level -i "$FILENAME" -map 0:1 -f null -
+
+if grep '\[error\]' "$WORKDIR"/scan_errors.out >/dev/null; then
+  if [[ "$DELETE_RECORDINGS_WITH_ERRORS" -eq "1" ]]; then
+    log_line "ERROR: detected errors in input. skipping transcode and deleting input file."
+    rm "$FILENAME"
+    exit 1
+  else
+    log_line "WARNING: ignoring detected errors in input. set DELETE_RECORDINGS_WITH_ERRORS to remove input file."
+    exit 1
+  fi
+fi
 
 # Extract Closed Captions:
 if [[ "$CLOSED_CAPTIONS" -eq "1" ]]; then
