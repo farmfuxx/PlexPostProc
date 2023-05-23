@@ -55,7 +55,7 @@ set -o pipefail
 
 TMPDIR="/tmp"
 LOGFILE="$TMPDIR/plex_DVR_post_processing_log"
-   FILENAME=$1  # %FILE% - Filename of original file
+FILENAME=$1  # %FILE% - Filename of original file
 
 function usage
 {
@@ -86,7 +86,7 @@ if [ ! -r "$FILENAME" ]; then
   exit 1
 fi
 
-   FILESIZE="$(ls -lh "$FILENAME" | awk '{ print $5 }')"
+FILESIZE="$(ls -lh "$FILENAME" | awk '{ print $5 }')"
 
 function cleanup
 {
@@ -108,10 +108,10 @@ WORKDIR="$(mktemp -d "$TMPDIR"/ppp.work.XXXXXXX)"
 TEMPFILENAME="$WORKDIR"/output.mkv
 TEMPFILENAMESRT="$WORKDIR"/sub.srt
 
-   # Uncomment if you want to adjust the bandwidth for this thread
-   #MYPID=$$    # Process ID for current script
-   # Adjust niceness of CPU priority for the current process
-   #renice 19 $MYPID
+# Uncomment if you want to adjust the bandwidth for this thread
+#MYPID=$$    # Process ID for current script
+# Adjust niceness of CPU priority for the current process
+#renice 19 $MYPID
 
 log_line "querying input $FILENAME (in_size=$FILESIZE)"
 
@@ -144,10 +144,10 @@ ffmpeg -loglevel warning -nostats -i "$FILENAME" $CC_OPTS \
 
 log_line "finished writing $TEMPFILENAME (out_size=$(ls -lh $TEMPFILENAME | awk '{ print $5 }'))"
 
-   # ********************************************************"
-   # Encode Done. Performing Cleanup
-   # ********************************************************"
+# ********************************************************"
+# Encode Done. Performing Cleanup
+# ********************************************************"
 
-   rm -f "$FILENAME" # Delete original in .grab folder
+rm -f "$FILENAME" # Delete original in .grab folder
 
-   mv -f "$TEMPFILENAME" "${FILENAME%.ts}.mkv" # Move completed tempfile to .grab folder/filename
+mv -f "$TEMPFILENAME" "${FILENAME%.ts}.mkv" # Move completed tempfile to .grab folder/filename
