@@ -18,18 +18,6 @@
 #  Usage:
 #     'PlexPostProc.sh %1'
 #
-#  Description:
-#      My script is currently pretty simple.  Here's the general flow:
-#
-#      1. Creates a temporary directory in the /tmp directory for
-#      the show it is about to transcode.
-#
-#      2. Uses the selected encoder to transcode the original, very
-#      large MPEG2 format file to a smaller, more manageable x265 mkv file
-#      (which can be streamed to various devices more easily).
-#
-#      3. Copies the file back to the original location for final processing
-#
 #  Log:
 #     Single log is generated with timestamped transcodes.
 
