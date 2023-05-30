@@ -44,7 +44,7 @@ set -e
 set -o pipefail
 
 TMPDIR="/tmp"
-LOGFILE="$TMPDIR/plex_DVR_post_processing_log"
+LOGFILE="/var/tmp/plex_DVR_post_processing_log"
 FILENAME=$1  # %FILE% - Filename of original file
 BASE_FILENAME="$(basename "$FILENAME")"
 
