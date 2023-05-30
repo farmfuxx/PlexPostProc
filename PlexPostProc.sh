@@ -46,6 +46,7 @@ set -o pipefail
 TMPDIR="/tmp"
 LOGFILE="$TMPDIR/plex_DVR_post_processing_log"
 FILENAME=$1  # %FILE% - Filename of original file
+BASE_FILENAME="$(basename "$FILENAME")"
 
 function usage
 {
@@ -92,7 +93,7 @@ trap cleanup EXIT
 
 function log_line
 {
-  echo "$(date +"%Y%m%d-%H%M%S"): $$ $1" | tee -a "$LOGFILE"
+  echo "$(date +"%Y%m%d-%H%M%S"): $BASE_FILENAME ($$) $1" | tee -a "$LOGFILE"
 }
 
 WORKDIR="$(mktemp -d "$TMPDIR"/ppp.work.XXXXXXX)"
