@@ -26,7 +26,7 @@
 #
 #******************************************************************************
 
-DELETE_RECORDINGS_WITH_ERRORS="0" # throw away recordings with any errors
+DELETE_RECORDINGS_WITH_ERRORS="1" # throw away recordings with any errors
 
 AUDIO_CODEC="ac3" # From best to worst: libfdk_aac > libmp3lame/eac3/ac3 > aac. But libfdk_acc requires manual compilaton of ffmpeg. For OTA DVR standard acc should be enough.
 AUDIO_BITRATE=96
