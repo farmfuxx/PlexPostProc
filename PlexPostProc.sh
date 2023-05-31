@@ -82,6 +82,7 @@ FILESIZE="$(ls -lh "$FILENAME" | awk '{ print $5 }')"
 function cleanup
 {
   set +e # turn off 'exit on error' during cleanup.
+  if [ -f "$WORKDIR"/env ]; then rm "$WORKDIR"/env; fi
   if [ -f "$WORKDIR"/scan_errors.out ]; then rm "$WORKDIR"/scan_errors.out; fi
   if [ -f "$WORKDIR"/audio_stream.json ]; then rm "$WORKDIR"/audio_stream.json; fi
   if [ -f "$WORKDIR"/video_stream.json ]; then rm "$WORKDIR"/video_stream.json; fi
@@ -104,6 +105,8 @@ TEMPFILENAMESRT="$WORKDIR"/sub.srt
 #MYPID=$$    # Process ID for current script
 # Adjust niceness of CPU priority for the current process
 #renice 19 $MYPID
+
+env > "$WORKDIR"/env
 
 log_line "querying input $FILENAME (in_size=$FILESIZE)"
 
