@@ -26,12 +26,8 @@
 #
 #******************************************************************************
 
-AUDIO_CODEC="ac3" # From best to worst: libfdk_aac > libmp3lame/eac3/ac3 > aac. But libfdk_acc requires manual compilaton of ffmpeg. For OTA DVR standard acc should be enough.
-AUDIO_BITRATE=96
-VIDEO_CODEC="libx265" # Will need Ubuntu 18.04 LTS or later. Otherwise change to "libx264". On average libx265 should produce files half in size of libx264  without losing quality. It is more compute intensive, so transcoding will take longer.
-VIDEO_QUALITY=26 #Lower values produce better quality. It is not recommended going lower than 18. 26 produces around 1Mbps video, 23 around 1.5Mbps.
-
-DOWNMIX_AUDIO=2 #Number of channels to downmix to, set to 0 to turn off (leave source number of channels, but make sure to increase audio bitrate to accomodate all the needed bitrate. For 5.1 Id set no lower than 320). 1 == mono, 2 == stereo, 6 == 5.1
+VIDEO_CODEC="libx265"
+PRESET="medium"
 
 #******************************************************************************
 #  Do not edit below this line
@@ -79,7 +75,6 @@ FILESIZE="$(ls -lh "$FILENAME" | awk '{ print $5 }')"
 function cleanup
 {
   set +e # turn off 'exit on error' during cleanup.
-  if [ -f "$WORKDIR"/audio_stream.json ]; then rm "$WORKDIR"/audio_stream.json; fi
   if [ -f "$WORKDIR"/video_stream.json ]; then rm "$WORKDIR"/video_stream.json; fi
   if [ -f "$TEMPFILENAMESRT" ]; then rm "$TEMPFILENAMESRT"; fi
   if [ -f "$TEMPFILENAME" ]; then rm "$TEMPFILENAME"; fi
@@ -96,24 +91,14 @@ WORKDIR="$(mktemp -d "$TMPDIR"/ppp.work.XXXXXXX)"
 TEMPFILENAME="$WORKDIR"/output.mkv
 TEMPFILENAMESRT="$WORKDIR"/sub.srt
 
-# Uncomment if you want to adjust the bandwidth for this thread
-#MYPID=$$    # Process ID for current script
-# Adjust niceness of CPU priority for the current process
-#renice 19 $MYPID
-
 log_line "querying input $FILENAME (in_size=$FILESIZE)"
 
 ffprobe "$FILENAME" -loglevel quiet -print_format json \
     -select_streams v:0 -show_streams > "$WORKDIR"/video_stream.json
-ffprobe "$FILENAME" -loglevel quiet -print_format json \
-    -select_streams a:0 -show_streams > "$WORKDIR"/audio_stream.json
 
-RES="$(cat "$WORKDIR"/video_stream.json | jq -r '.["streams"][0]["height"]')"
-VIDEO_FRAMERATE="$(cat "$WORKDIR"/video_stream.json | jq -r '.["streams"][0]["r_frame_rate"]')"
 CLOSED_CAPTIONS="$(cat "$WORKDIR"/video_stream.json | jq -r '.["streams"][0]["closed_captions"]')"
-AUDIO_CHANNELS="$(cat "$WORKDIR"/audio_stream.json | jq -r ' .["streams"][0]["channels"]')"
 
-log_line "input details: RES=$RES, FRAMERATE=$VIDEO_FRAMERATE, CC=$CLOSED_CAPTIONS"
+log_line "input details: CC=$CLOSED_CAPTIONS"
 
 # Extract Closed Captions:
 if [[ "$CLOSED_CAPTIONS" -eq "1" ]]; then
@@ -121,13 +106,9 @@ if [[ "$CLOSED_CAPTIONS" -eq "1" ]]; then
   CC_OPTS="-i $TEMPFILENAMESRT"
 fi
 
-if [[ $DOWNMIX_AUDIO -ne  0  && $AUDIO_CHANNELS -gt $DOWNMIX_AUDIO ]]; then
-  DOWNMIX_OPTS="-ac $DOWNMIX_AUDIO"
-fi
-
-ffmpeg -loglevel warning -nostats -i "$FILENAME" $CC_OPTS \
-    -s hd$RES -c:v "$VIDEO_CODEC" -r "$VIDEO_FRAMERATE"  -preset veryfast -crf "$VIDEO_QUALITY" -vf yadif \
-    -codec:a "$AUDIO_CODEC" $DOWNMIX_OPTS -b:a "$AUDIO_BITRATE"k -async 1 \
+ffmpeg -loglevel warning -nostats -i "$FILENAME" -map 0 $CC_OPTS \
+    -c:v "$VIDEO_CODEC" -preset $PRESET -vf yadif \
+    -c:a copy \
     "$TEMPFILENAME"
 
 log_line "finished writing $TEMPFILENAME (out_size=$(ls -lh $TEMPFILENAME | awk '{ print $5 }'))"
