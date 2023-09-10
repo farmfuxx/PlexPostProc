@@ -90,7 +90,7 @@ function cleanup
   if [ -f "$TEMPFILENAME" ]; then rm "$TEMPFILENAME"; fi
   if [ -d "$WORKDIR" ]; then rmdir $WORKDIR; fi
 }
-trap cleanup EXIT
+#trap cleanup EXIT
 
 function log_line
 {
