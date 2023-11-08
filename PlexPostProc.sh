@@ -28,6 +28,7 @@
 
 VIDEO_CODEC="libx265"
 PRESET="medium"
+CRF="25"
 
 #******************************************************************************
 #  Do not edit below this line
@@ -110,8 +111,9 @@ if [[ "$CLOSED_CAPTIONS" -eq "1" ]]; then
   CC_OPTS="-i $TEMPFILENAMESRT"
 fi
 
-ffmpeg -loglevel warning -nostats -i "$FILENAME" -map 0 $CC_OPTS \
-    -c:v "$VIDEO_CODEC" -preset $PRESET -vf yadif \
+ffmpeg -loglevel warning -nostats -i "$FILENAME" $CC_OPTS \
+    -map 0 \
+    -c:v "$VIDEO_CODEC" -crf "$CRF" -preset "$PRESET" -vf yadif \
     -c:a copy \
     "$TEMPFILENAME"
 
