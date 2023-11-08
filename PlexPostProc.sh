@@ -111,7 +111,9 @@ if [[ "$CLOSED_CAPTIONS" -eq "1" ]]; then
   CC_OPTS="-i $TEMPFILENAMESRT"
 fi
 
-ffmpeg -loglevel warning -nostats -i "$FILENAME" $CC_OPTS \
+ffmpeg -loglevel warning -nostats -i "$FILENAME" \
+    -max_muxing_queue_size  4096 \
+    $CC_OPTS \
     -map 0 \
     -c:v "$VIDEO_CODEC" -crf "$CRF" -preset "$PRESET" -vf yadif \
     -c:a copy \
