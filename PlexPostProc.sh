@@ -33,12 +33,16 @@ PRESET="medium"
 #  Do not edit below this line
 #******************************************************************************
 
+TMPDIR="/tmp"
+LOGFILE="$TMPDIR/plex_DVR_post_processing_log"
+
+# Write a debug logfile to /tmp that will persist if this run fails
+exec > "$LOGFILE"."$$".debug 2>&1
+
 set -x
 set -e
 set -o pipefail
 
-TMPDIR="/tmp"
-LOGFILE="$TMPDIR/plex_DVR_post_processing_log"
 FILENAME=$1  # %FILE% - Filename of original file
 
 function usage
@@ -120,3 +124,5 @@ log_line "finished writing $TEMPFILENAME (out_size=$(ls -lh $TEMPFILENAME | awk 
 rm -f "$FILENAME" # Delete original in .grab folder
 
 mv -f "$TEMPFILENAME" "${FILENAME%.ts}.mkv" # Move completed tempfile to .grab folder/filename
+
+rm -f  "$LOGFILE"."$$".debug # Delete debuglogfile for run, since it appears successful
